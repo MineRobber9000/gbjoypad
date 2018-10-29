@@ -78,6 +78,7 @@ Start:
 	jr .loop
 
 VBlank:
+	call Joypad
 	call DisplayJoypadState
 	reti ; TODO: implement joypad checking and updated button state
 
@@ -91,6 +92,26 @@ StopLCD:
 	ld a,[rLCDC]
 	res 7,a
 	ld [rLCDC],a
+	ret
+
+Joypad:
+	ld a, $20
+	call .dohalf
+	swap a
+	push af
+	ld a, $10
+	call .dohalf
+	ld b, a
+	pop af
+	or a,b
+	cpl
+	ld [wCurrentJoypadState],a
+	ret
+.dohalf	ld [rP1],a
+REPT $03 ; number taken from Aevilia (ISSOtm's RPG) since it seems to work
+	ld a,[rP1]
+ENDR
+	and $0F
 	ret
 
 puthex:
@@ -111,9 +132,20 @@ putnibble:
 
 DisplayJoypadState:
 	push hl
+	push bc
+	push af
+; I started work on this but decided to implement joypad checking first :P
+;	ld hl, wJoypadOutputString
+;	ld bc, $08
+;	xor a
+;	call fillmem
+;	ld hl, wJoypadOutputString
+;	ld a,[wCurrentJoypadState]
 	ld hl, _SCRN0+(StartEnd-TextStart)
 	ld a,[wCurrentJoypadState]
 	call puthex
+	pop af
+	pop bc
 	pop hl
 	ret
 
