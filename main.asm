@@ -46,30 +46,30 @@ Start:
 	xor a
 	ld [rIE],a ; disable all interrupts
 	ei ; Set IME=1 so when we allow interrupts later, VBlank will be serviced
-	ld hl,$c000
+	ld hl,$c000 ; clear WRAM
 	ld bc,$2000
 	xor a
 	call fillmem
 	call StopLCD
-	ld a,%11100100
+	ld a,%11100100 ; fix palette
 	ld [rBGP],a
-	ld a,$00
+	ld a,$00 ; init scroll registers
 	ld [rSCX],a
 	ld [rSCY],a
-	ld hl,FontTiles
+	ld hl,FontTiles ; load font into VRAM
 	ld de,_VRAM
 	ld bc,256*16
 	call memcpy
-	ld a,32
+	ld a,32 ; blank out screen
 	ld hl,_SCRN0
 	ld bc,SCRN_VX_B * SCRN_VY_B
 	call fillmem
-	ld hl,TextStart
+	ld hl,TextStart ; add "Joypad:" text to the screen
 	ld de,_SCRN0
 	ld bc,StartEnd-TextStart
 	call memcpy
-	call DisplayJoypadState
-	ld a,LCDCF_ON|LCDCF_BG8000|LCDCF_BG9800|LCDCF_BGON|LCDCF_OBJ16|LCDCF_OBJOFF
+	call DisplayJoypadState ; display beginning state
+	ld a,LCDCF_ON|LCDCF_BG8000|LCDCF_BG9800|LCDCF_BGON|LCDCF_OBJ16|LCDCF_OBJOFF ; turn on screen
 	ld [rLCDC],a
 	ld a,$01
 	ld [rIE],a
