@@ -118,7 +118,7 @@ DisplayJoypadState:
 	ret
 
 TextStart:
-	db "State: "
+	db "Joypad: "
 StartEnd:
 
 FontTiles:
