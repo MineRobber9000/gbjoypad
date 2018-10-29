@@ -1,8 +1,13 @@
 import argparse,bgblink,time
 from lumberjack import log
 
+CONTROL_LAST = 0x100
+
 def out(x,o):
-	log("{:02X}".format(x),">","cyan")
+	global CONTROL_LAST
+	if x != CONTROL_LAST:
+		log("{:02X}".format(x),">","cyan")
+		CONTROL_LAST = x
 	return 0
 
 if __name__=="__main__":
