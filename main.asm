@@ -79,6 +79,7 @@ Start:
 
 VBlank:
 	call Joypad
+	call SendByte
 	call DisplayJoypadState
 	reti ; TODO: implement joypad checking and updated button state
 
@@ -93,6 +94,22 @@ StopLCD:
 	res 7,a
 	ld [rLCDC],a
 	ret
+
+; Transfers byte from a out through serial port. Carry flag is set if result == $FF (peripheral should hold its TX line low so result will == $00)
+SendByte:
+	ld [rSB],a
+	ld a,$81
+	ld [rSC],a
+.loop	ld a,[rSC]
+	bit 7,a
+	jr nz,.loop
+	ld a,[rSB]
+	cp $FF
+	jr nz,.c
+	scf
+	jr .end
+.c	ccf
+.end	ret
 
 Joypad:
 	ld a, $20
