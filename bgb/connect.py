@@ -1,12 +1,41 @@
 import argparse,bgblink,time
 from lumberjack import log
 
+bittest = lambda x,p: ((x&(1<<p))==(1<<p))
+
 CONTROL_LAST = 0x100
 
+class ControllerState:
+	BUTTONS = {"up":6,"down":7,"left":5,"right":4,"a":0,"b":1,"select":3,"start":2}
+	BUTTONS_ORD = "up down left right a b select start".split()
+	BUTTONS_STR = "UDLRABSs"
+	def __init__(self,v):
+		self.value = v
+
+	def __getattr__(self,k):
+		if k in self.BUTTONS:
+			return bittest(self.value,k)
+		return super(ControllerState,self).__getattr__(k)
+
+	def __str__(self):
+		i = 0
+		r = ""
+		while i<len(self.BUTTONS_ORD):
+			button = self.BUTTONS_ORD[i]
+			if bittest(self.value,self.BUTTONS[button]):
+				r+=self.BUTTONS_STR[i]
+			else:
+				r+="-"
+			i+=1
+		return r
+
+cont = ControllerState(0x00)
+
 def out(x,o):
-	global CONTROL_LAST
+	global CONTROL_LAST,cont
 	if x != CONTROL_LAST:
-		log("{:02X}".format(x),">","cyan")
+		cont.value = x
+		log("{:02X} {!s}".format(x,cont),">","cyan")
 		CONTROL_LAST = x
 	return 0
 
