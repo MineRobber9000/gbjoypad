@@ -1,9 +1,15 @@
 import argparse,bgblink,time
-from lumberjack import log
+from lumberjack import log as l
 
 bittest = lambda x,p: ((x&(1<<p))==(1<<p))
 
+VERBOSE = True # can be set to False in test script
 CONTROL_LAST = 0x100
+
+def log(*args):
+	if not VERBOSE:
+		return
+	return l(*args)
 
 class ControllerState:
 	BUTTONS = {"up":6,"down":7,"left":5,"right":4,"a":0,"b":1,"select":3,"start":2}
@@ -14,7 +20,7 @@ class ControllerState:
 
 	def __getattr__(self,k):
 		if k in self.BUTTONS:
-			return bittest(self.value,k)
+			return bittest(self.value,self.BUTTONS[k])
 		return super(ControllerState,self).__getattr__(k)
 
 	def __str__(self):
