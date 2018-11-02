@@ -4,3 +4,6 @@
 # Built products
 *.gb
 *.sym
+
+# python
+*.pyc
