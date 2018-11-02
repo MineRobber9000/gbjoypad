@@ -68,7 +68,7 @@ VBlank:
 	call Joypad
 	call SendByte
 	call DisplayJoypadState
-	reti ; TODO: implement joypad checking and updated button state
+	reti
 
 StopLCD:
 	ld a,[rLCDC]
