@@ -58,13 +58,13 @@ Start:
 	call DisplayJoypadState ; display beginning state
 	ld a,LCDCF_ON|LCDCF_BG8000|LCDCF_BG9800|LCDCF_BGON|LCDCF_OBJ16|LCDCF_OBJOFF ; turn on screen
 	ld [rLCDC],a
-	ld a,$01
-	ld [rIE],a
 	xor a
 	call SendByte
 	jr c,.assign
 	inc a
 .assign	ld [wSendByLinkCable],a
+	ld a,$01
+	ld [rIE],a
 .loop
 	halt
 	jr .loop
