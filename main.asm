@@ -60,15 +60,23 @@ Start:
 	ld [rLCDC],a
 	ld a,$01
 	ld [rIE],a
+	xor a
+	call SendByte
+	jr c,.assign
+	inc a
+.assign	ld [wSendByLinkCable],a
 .loop
 	halt
 	jr .loop
 
 VBlank:
 	call Joypad
-	call SendByte
 	call DisplayJoypadState
-	reti
+	ld a,[wSendByLinkCable]
+	bit 0,a
+	jr nz,.end
+	call SendByte
+.end	reti
 
 StopLCD:
 	ld a,[rLCDC]
