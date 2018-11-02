@@ -4,23 +4,29 @@ from lumberjack import log
 count = 0
 total = 0
 
-def assume(cmd,id,resp,rid):
+def header(text):
+	log(text,"*","cyan")
+
+def assume(name,cond,val):
 	global count,total
 	total+=1
 	try:
-		assert connect.gbgc(id,None)==rid
-		log("Test \"{}->{}\" passed!".format(cmd,resp),"!","green")
+		assert cond==val
+		log("Test \"{}\" passed!".format(name),"!","green")
 		count+=1
 	except:
-		log("Test failed: {} command should recieve response {}".format(cmd,resp),"X")
+		log("Test \"{}\" failed!".format(name),"X")
 		pass
 
-assume("PING",0,"PING",0)
-assume("RETR",1,"ACK",1)
-assume("A",ord("A"),"ACK",1)
-assume("B",ord("B"),"ACK",1)
-assume("<END>",0,"ACK_FIN",2)
-assume("<any char>",0,"A",ord("A"))
-assume("<any char>",0,"B",ord("B"))
-assume("<any char>",0,"END_PACKET",0xFF)
+header("Testing ControllerState object")
+test = connect.ControllerState(0x00)
+assume("no buttons are on at x=00",any(getattr(test,k) for k in test.BUTTONS),False)
+assume("str(test) == \"--------\"",str(test),"--------")
+test.value = 0xFF
+assume("all buttons are on at x=FF",all(getattr(test,k) for k in test.BUTTONS),True)
+assume("str(test) == \"UDLRABSs\"",str(test),"UDLRABSs")
+header("Misc tests")
+connect.VERBOSE = False
+assume("Any input returns 0",all(connect.out(x,None)==0 for x in range(256)),True)
+
 log("{!s}/{!s} ({!s}%) tests passed.".format(count,total,round((count/total)*100,2)))
