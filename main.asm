@@ -1,166 +1,185 @@
 INCLUDE "hardware.inc"
 INCLUDE "ibmpc1.inc"
 ; rst vectors
-SECTION "Dummy RST Handlers",ROM0[0]
-REPT 8
-	ret
-REPT 7
-	nop
-ENDR
-ENDR
-
-SECTION "vblank",ROM0[$40]
-	jp VBlank
-SECTION "lcdc",ROM0[$48]
-	reti
-SECTION "timer",ROM0[$50]
-	reti
-SECTION "serial",ROM0[$58]
-	reti
-SECTION "joypad",ROM0[$60]
-	reti
-
-SECTION "signature",ROM0[$80]
-	db "MineRobber9000"
-
-SECTION "romheader",ROM0[$100]
-	nop
-	jp Start
-
-Section "start",ROM0[$150]
-
-Start:
-	xor a
-	ld [rIE],a ; disable all interrupts
-	ei ; Set IME=1 so when we allow interrupts later, VBlank will be serviced
-	ld hl,$c000 ; clear WRAM
-	ld bc,$2000
-	xor a
-	call fillmem
-	call StopLCD
-	ld a,%11100100 ; fix palette
-	ld [rBGP],a
-	ld a,$00 ; init scroll registers
-	ld [rSCX],a
-	ld [rSCY],a
-	ld hl,FontTiles ; load font into VRAM
-	ld de,_VRAM
-	ld bc,256*16
-	call memcpy
-	ld a,32 ; blank out screen
-	ld hl,_SCRN0
-	ld bc,SCRN_VX_B * SCRN_VY_B
-	call fillmem
-	ld hl,TextStart ; add "Joypad:" text to the screen
-	ld de,_SCRN0
-	ld bc,StartEnd-TextStart
-	call memcpy
-	call DisplayJoypadState ; display beginning state
-	ld a,LCDCF_ON|LCDCF_BG8000|LCDCF_BG9800|LCDCF_BGON|LCDCF_OBJ16|LCDCF_OBJOFF ; turn on screen
-	ld [rLCDC],a
-	xor a
-	call SendByte
-	jr c,.assign
-	inc a
-.assign	ld [wSendByLinkCable],a
-	ld a,$01
-	ld [rIE],a
+SECTION "RST Handlers",ROM0[$0000]
+fillmem equ $00
+_fillmem:
+    inc b
+    inc c
+    jr .skip
 .loop
-	halt
-	jr .loop
+    ld [hli], a
+.skip
+    dec c
+    jr nz, .loop
+    dec b
+    jr nz, .loop
+    ret
+    ds 4
 
-VBlank:
-	call Joypad
-	call DisplayJoypadState
-	ld a,[wSendByLinkCable]
-	bit 0,a
-	jr nz,.end
-	call SendByte
-.end	reti
+memcpy equ $10
+_memcpy:
+    inc b
+    inc c
+    jr .skip
+.loop
+    ld a, [hli]
+    ld [de], a
+    inc de
+.skip
+    dec c
+    jr nz, .loop
+    dec b
+    jr nz, .loop
+    ret
+    ds 2
 
-StopLCD:
-	ld a,[rLCDC]
-	rlca
-	ret nc
-.wait	ld a,[rLY]
-	cp 145
-	jr nz,.wait
-	ld a,[rLCDC]
-	res 7,a
-	ld [rLCDC],a
-	ret
+REPT 4
+    ret
+    ds 7
+ENDR
 
-; Transfers byte from a out through serial port. Carry flag is set if result == $FF (peripheral should hold its TX line low so result will == $00)
+VBlank: ; VBlank handler here
+    call Joypad
+    call DisplayJoypadState
+    ldh a, [hSendByLinkCable]
+    rra ; Bit 0 into carry
+    ldh a, [hCurrentJoypadState]
+    call nc, SendByte
+    reti
+
+
+
+; Transfers byte from a out through serial port. Z flag is set if result == $FF (peripheral should hold its TX line low so result will == $00)
 SendByte:
-	ld [rSB],a
-	ld a,$81
-	ld [rSC],a
-.loop	ld a,[rSC]
-	bit 7,a
-	jr nz,.loop
-	ld a,[rSB]
-	cp $FF
-	ccf
-.end	ret
+    ld [rSB], a
+    ld a, $81
+    ld [rSC], a
+.loop
+    ld a, [rSC]
+    add a, a
+    jr c, .loop
+    ld a, [rSB]
+    inc a ; Return result in Z flag
+    ret
 
 Joypad:
-	ld a, $20
-	call .dohalf
-	swap a
-	push af
-	ld a, $10
-	call .dohalf
-	ld b, a
-	pop af
-	or a,b
-	cpl
-	ld [wCurrentJoypadState],a
-	ret
-.dohalf	ld [rP1],a
-REPT $03 ; number taken from Aevilia (ISSOtm's RPG) since it seems to work
-	ld a,[rP1]
-ENDR
-	and $0F
-	ret
+    ld c, LOW(rP1)
+    ld a, $20
+    call .dohalf
+    swap a
+    ld b, a
+    ld a, $10
+    call .dohalf
+    xor b
+    ldh [hCurrentJoypadState],a
+    ret
 
-puthex:
-	push af
-	swap a
-	and $0F
-	call putnibble
-	pop af
-	and $0F
-putnibble:
-	cp $0A
-	jr c,.not_letter
-	add ("A"-"9"-1)
-.not_letter:
-	add "0"
-	ld [hl+],a
-	ret
+.dohalf
+    ld [$ff00+c],a
+REPT $03 ; number taken from Aevilia (ISSOtm's RPG) since it seems to work
+    ld a,[$ff00+c]
+ENDR
+    or $F0
+    ret
 
 DisplayJoypadState:
-	push hl
-	push bc
-	push af
 ; I started work on this but decided to implement joypad checking first :P
-;	ld hl, wJoypadOutputString
-;	ld bc, $08
-;	xor a
-;	call fillmem
-;	ld hl, wJoypadOutputString
-;	ld a,[wCurrentJoypadState]
-	ld hl, _SCRN0+(StartEnd-TextStart)
-	ld a,[wCurrentJoypadState]
-	call puthex
-	pop af
-	pop bc
-	pop hl
-	ret
+;    ld hl, hJoypadOutputString
+;    ld bc, $08
+;    xor a
+;    rst fillmem
+;    ld hl, wJoypadOutputString
+;    ld a, [wCurrentJoypadState]
+    ld hl, _SCRN0 + JoypadTextEnd - JoypadText
+    ldh a, [hCurrentJoypadState]
+    ; Fallthrough to PrintHex
 
-TextStart:
-	db "Joypad: "
-StartEnd:
+PrintHex:
+    ld b, a
+    swap a
+    and $0F
+    call .nibble
+    ld a, b
+    and $0F
+
+.nibble
+    cp 10
+    jr c, .not_letter
+    add a, "A" - "0" - 10
+.not_letter
+    add a, "0"
+    ld [hl+], a
+    ret
+
+StopLCD:
+    ld a, [rLCDC]
+    rlca
+    ret nc
+.wait
+    ld a, [rLY]
+    cp SCRN_Y
+    jr c, .wait
+    xor a
+    ld [rLCDC], a
+    ret
+
+
+SECTION "ROM header",ROM0[$100]
+    di
+    xor a
+    jr Start
+
+REPT $150 - $104
+    db 0
+ENDR
+    db "MineRobber9000"
+
+Start:
+    ld hl, _RAM
+    ld bc, $2000
+    rst fillmem
+
+    call StopLCD
+    ; xor a ; init scroll registers
+    ld [rSCX], a
+    ld [rSCY], a
+    ld a, %11100100 ; Set palette
+    ld [rBGP], a
+    ld hl, FontTiles ; load font into VRAM
+    ld de, _VRAM
+    ld bc, 256 * 16
+    rst memcpy
+    ld a, " " ; blank out screen
+    ld hl, _SCRN0
+    ld bc, SCRN_VX_B * SCRN_VY_B
+    rst fillmem
+    ld de, _SCRN0
+    ld hl, JoypadText ; add "Joypad:" text to the screen
+    ld bc, JoypadTextEnd - JoypadText
+    rst memcpy
+
+    call DisplayJoypadState ; display beginning state
+    ld a, LCDCF_ON | LCDCF_BG8000 | LCDCF_BG9800 | LCDCF_BGON | LCDCF_OBJ16 | LCDCF_OBJOFF ; turn on screen
+    ld [rLCDC], a
+    xor a
+    call SendByte
+    jr nz, .assign
+    dec a
+.assign
+    ldh [hSendByLinkCable], a
+    ld a, IEF_VBLANK
+    ld [rIE],a
+    ei
+
+.loop
+    halt
+    jr .loop
+
+JoypadText:
+    db "Joypad: "
+JoypadTextEnd:
 
 FontTiles:
-	chr_IBMPC1 1,8
+    chr_IBMPC1 1,8
+
