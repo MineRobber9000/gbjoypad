@@ -1,4 +1,4 @@
-INCLUDE "gbhw.inc"
+INCLUDE "hardware.inc"
 INCLUDE "ibmpc1.inc"
 ; rst vectors
 SECTION "Dummy RST Handlers",ROM0[0]
