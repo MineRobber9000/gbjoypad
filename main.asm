@@ -100,10 +100,7 @@ SendByte:
 	jr nz,.loop
 	ld a,[rSB]
 	cp $FF
-	jr nz,.c
-	scf
-	jr .end
-.c	ccf
+	ccf
 .end	ret
 
 Joypad:
