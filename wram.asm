@@ -1,7 +1,9 @@
-SECTION "WRAM",WRAM0[$c000]
-wCurrentJoypadState::
+
+SECTION "HRAM", HRAM
+
+hCurrentJoypadState::
 	ds 1
-wSendByLinkCable::
+hSendByLinkCable::
 	ds 1
-wJoypadOutputString::
+hJoypadOutputString::
 	ds 8 ; max length: UDLRABSs
