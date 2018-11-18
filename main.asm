@@ -45,7 +45,7 @@ VBlank: ; VBlank handler here
     ldh a, [hSendByLinkCable]
     rra ; Bit 0 into carry
     ldh a, [hCurrentJoypadState]
-    call nc, SendByte
+    call c, SendByte
     reti
 
 
