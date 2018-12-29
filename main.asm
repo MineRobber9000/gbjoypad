@@ -45,12 +45,12 @@ VBlank: ; VBlank handler here
     ldh a, [hSendByLinkCable]
     rra ; Bit 0 into carry
     ldh a, [hCurrentJoypadState]
-    call c, SendByte
+    call nc, SendByte
     reti
 
 
 
-; Transfers byte from a out through serial port. Z flag is set if result == $FF (peripheral should hold its TX line low so result will == $00)
+; Transfers byte from a out through serial port. (peripheral should hold its TX line low so result will == $00)
 SendByte:
     ld [rSB], a
     ld a, $81
@@ -60,7 +60,6 @@ SendByte:
     add a, a
     jr c, .loop
     ld a, [rSB]
-    inc a ; Return result in Z flag
     ret
 
 Joypad:
@@ -164,9 +163,6 @@ Start:
     ld [rLCDC], a
     xor a
     call SendByte
-    jr nz, .assign
-    dec a
-.assign
     ldh [hSendByLinkCable], a
     ld a, IEF_VBLANK
     ld [rIE],a
